@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        outline: none;
+        border: none;
+        text-decoration: none;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: "popins", sans-serif;
+        line-height: 1.5;
+        max-width: 100%;
+      }
+      main {
+        padding: 0;
+      }
+      section {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+      #snack-section {
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        background: -webkit-linear-gradient(to top, #51ffd9, #c7e8ff);
+        background: linear-gradient(to top, #51ffd9, #c7e8ff);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section id="snack-section">
+        <canvas
+          id="gameCanvas"
+          width="400"
+          height="400"
+          style="
+            border: 1px solid #000;
+            background-color: rgb(73, 73, 206);
+            margin-top: 100px;
+            margin-bottom: 50px;
+          "
+        ></canvas>
+        <div>
+          <button onclick="startGame()">Start Game</button>
+          <button onclick="stopPlaying()">Stop Playing</button>
+          <input
+            type="color"
+            id="snakeColorPicker"
+            onchange="changeSnakeColor()"
+          />
+        </div>
+        <div id="scoreContainer" style="position: absolute; left: 360px">
+          Nda`s Highest <br />
+          Score: <span id="score">53</span>
+        </div>
+      </section>
+    </main>
+  </body>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const gridSize = 20;
+    const gridWidth = Math.floor(canvas.width / gridSize);
+    const gridHeight = Math.floor(canvas.height / gridSize);
+
+    let snakeColor = "#000";
+    let snakeX = Math.floor(gridWidth / 2) * gridSize;
+    let snakeY = Math.floor(gridHeight / 2) * gridSize;
+    let snakeXSpeed = gridSize;
+    let snakeYSpeed = 0;
+    let snakeBody = [];
+    let score = 0;
+
+    let foodSize = gridSize;
+    let foodX = Math.floor(Math.random() * gridWidth) * gridSize;
+    let foodY = Math.floor(Math.random() * gridHeight) * gridSize;
+
+    let gameRunning = false;
+    let intervalId = null;
+
+    function drawGrid() {
+      ctx.strokeStyle = "#ddd";
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+    }
+
+    function drawSnake() {
+      ctx.fillStyle = snakeColor;
+      for (let i = 0; i < snakeBody.length; i++) {
+        ctx.fillRect(snakeBody[i].x, snakeBody[i].y, gridSize, gridSize);
+      }
+    }
+
+    function drawFood() {
+      ctx.fillStyle = "#f00";
+      ctx.fillRect(foodX, foodY, foodSize, foodSize);
+    }
+
+    function moveSnake() {
+      snakeX += snakeXSpeed;
+      snakeY += snakeYSpeed;
+
+      if (snakeX < 0) snakeX = canvas.width - gridSize;
+      if (snakeX >= canvas.width) snakeX = 0;
+      if (snakeY < 0) snakeY = canvas.height - gridSize;
+      if (snakeY >= canvas.height) snakeY = 0;
+    }
+
+    function updateGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawGrid();
+      drawSnake();
+      drawFood();
+
+      if (snakeX === foodX && snakeY === foodY) {
+        score++;
+        const foodCount = Math.floor(score / 5) + 1;
+        for (let i = 0; i < foodCount; i++) {
+          foodX = Math.floor(Math.random() * gridWidth) * gridSize;
+          foodY = Math.floor(Math.random() * gridHeight) * gridSize;
+          drawFood();
+        }
+      } else {
+        snakeBody.pop();
+      }
+
+      for (let i = 0; i < snakeBody.length; i++) {
+        if (snakeBody[i].x === snakeX && snakeBody[i].y === snakeY) {
+          stopPlaying();
+          alert("Game Over! Your score: " + score);
+          return;
+        }
+      }
+
+      snakeBody.unshift({ x: snakeX, y: snakeY });
+
+      moveSnake();
+
+      ctx.fillStyle = "#ffff";
+      ctx.font = "16px Arial";
+      ctx.fillText("Score: " + score, 10, 20);
+
+      if (gameRunning) {
+        intervalId = setTimeout(updateGame, 100);
+      }
+    }
+
+    function startGame() {
+      if (!gameRunning) {
+        snakeX = Math.floor(gridWidth / 2) * gridSize;
+        snakeY = Math.floor(gridHeight / 2) * gridSize;
+        snakeXSpeed = gridSize;
+        snakeYSpeed = 0;
+        snakeBody = [];
+        score = 0;
+
+        snakeColor = document.getElementById("snakeColorPicker").value;
+
+        gameRunning = true;
+        updateGame();
+      }
+    }
+
+    function stopPlaying() {
+      clearTimeout(intervalId);
+      gameRunning = false;
+    }
+
+    function changeSnakeColor() {
+      snakeColor = document.getElementById("snakeColorPicker").value;
+    }
+
+    document.addEventListener("keydown", function (event) {
+      if (!gameRunning) return;
+      const key = event.key;
+      switch (key) {
+        case "ArrowUp":
+          if (snakeYSpeed !== gridSize) {
+            snakeXSpeed = 0;
+            snakeYSpeed = -gridSize;
+          }
+          break;
+        case "ArrowDown":
+          if (snakeYSpeed !== -gridSize) {
+            snakeXSpeed = 0;
+            snakeYSpeed = gridSize;
+          }
+          break;
+        case "ArrowLeft":
+          if (snakeXSpeed !== gridSize) {
+            snakeXSpeed = -gridSize;
+            snakeYSpeed = 0;
+          }
+          break;
+        case "ArrowRight":
+          if (snakeXSpeed !== -gridSize) {
+            snakeXSpeed = gridSize;
+            snakeYSpeed = 0;
+          }
+          break;
+      }
+    });
+  </script>
+</html>
